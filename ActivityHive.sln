@@ -11,7 +11,7 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Domain", "Domain\Domain.csp
 EndProject
 Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "Persistence", "Persistence\Persistence.fsproj", "{B5E4859A-B797-4503-93B3-F99A78872668}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Infrastructure", "Infrastructure\Infrastructure.csproj", "{B574B0E3-908C-4AA1-8802-52EA1D01476A}"
+Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "Infrastructure", "Infrastructure\Infrastructure.fsproj", "{B574B0E3-908C-4AA1-8802-52EA1D01476A}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
