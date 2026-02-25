@@ -20,14 +20,13 @@ public static class ApplicationServiceExtensions
         {
             string? env = Environment.GetEnvironmentVariable("ASPNETCORE_ENVIRONMENT");
 
-            string? connStr;
-
-            // Depending on if in development or production, use either FlyIO
-            // connection string, or development connection string from env var.
+            // Depending on if in development or production, use either SQLite
+            // (development) or FlyIO PostgreSQL connection string (production).
             if (env == "Development") 
             {
-                // Use connection string from file.
-                connStr = config.GetConnectionString("DefaultConnection");
+                // Use SQLite for local development.
+                string? connStr = config.GetConnectionString("DefaultConnection");
+                options.UseSqlite(connStr);
             }
             else
             {
@@ -46,12 +45,9 @@ public static class ApplicationServiceExtensions
                 string pgPort = pgHostPort.Split(":")[1];
 
                 string updatedHost = pgHost.Replace("flycast", "internal");
-                connStr = $"Server={updatedHost};Port={pgPort};User Id={pgUser};Password={pgPass};Database={pgDb};";
+                string connStr = $"Server={updatedHost};Port={pgPort};User Id={pgUser};Password={pgPass};Database={pgDb};";
+                options.UseNpgsql(connStr);
             }
-
-            // Whether the connection string came from the local development configuration file
-            // or from the environment variable from FlyIO, use it to set up your DbContext.
-            options.UseNpgsql(connStr);
         });
         services.AddCors(Options => {
             Options.AddPolicy("CorsPolicy", policy => {
