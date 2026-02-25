@@ -6,8 +6,6 @@ open Application.Interfaces
 open Application.Profiles
 open Domain
 open Persistence
-open AutoMapper
-open AutoMapper.QueryableExtensions
 open MediatR
 open Microsoft.EntityFrameworkCore
 
@@ -45,24 +43,46 @@ module List =
         member val Predicate: string = "" with get, set
         interface IRequest<ServiceResponse<UserProfile list>>
 
-    type Handler(context: DataContext, mapper: IMapper, userAccessor: IUserAccessor) =
+    type Handler(context: DataContext, userAccessor: IUserAccessor) =
         interface IRequestHandler<Query, ServiceResponse<UserProfile list>> with
             member _.Handle(request, _ct) =
                 task {
                     let username = userAccessor.GetUsername()
-                    let! profiles =
+
+                    let! followRelations =
                         match request.Predicate with
                         | "followers" ->
                             context.UserFollowings
                                 .Where(fun x -> x.Target.UserName = request.Username)
-                                .Select(fun u -> u.Observer)
-                                .ProjectTo<UserProfile>(mapper.ConfigurationProvider, dict ["currentUsername", box username])
+                                .Include(fun x -> x.Observer)
+                                .ThenInclude(fun (u: User) -> u.Photos :> System.Collections.Generic.IEnumerable<Photo>)
+                                .Include(fun x -> x.Observer)
+                                .ThenInclude(fun (u: User) -> u.Followers :> System.Collections.Generic.IEnumerable<UserFollowing>)
+                                .Include(fun x -> x.Observer)
+                                .ThenInclude(fun (u: User) -> u.Followings :> System.Collections.Generic.IEnumerable<UserFollowing>)
                                 .ToListAsync()
                         | _ ->
                             context.UserFollowings
                                 .Where(fun x -> x.Observer.UserName = request.Username)
-                                .Select(fun u -> u.Target)
-                                .ProjectTo<UserProfile>(mapper.ConfigurationProvider, dict ["currentUsername", box username])
+                                .Include(fun x -> x.Target)
+                                .ThenInclude(fun (u: User) -> u.Photos :> System.Collections.Generic.IEnumerable<Photo>)
+                                .Include(fun x -> x.Target)
+                                .ThenInclude(fun (u: User) -> u.Followers :> System.Collections.Generic.IEnumerable<UserFollowing>)
+                                .Include(fun x -> x.Target)
+                                .ThenInclude(fun (u: User) -> u.Followings :> System.Collections.Generic.IEnumerable<UserFollowing>)
                                 .ToListAsync()
-                    return ServiceResponse.success (profiles |> Seq.toList)
+
+                    let! myFollowingIds =
+                        context.UserFollowings
+                            .Where(fun f -> f.Observer.UserName = username)
+                            .Select(fun f -> f.TargetId)
+                            .ToListAsync()
+                    let followingSet = Set.ofSeq myFollowingIds
+
+                    let users =
+                        followRelations
+                        |> Seq.map (fun f ->
+                            if request.Predicate = "followers" then f.Observer else f.Target)
+
+                    return ServiceResponse.success (users |> Seq.map (mapUserToProfile followingSet) |> Seq.toList)
                 }

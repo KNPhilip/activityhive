@@ -8,7 +8,6 @@ open Application.Interfaces
 open Domain
 open Persistence
 open AutoMapper
-open AutoMapper.QueryableExtensions
 open FluentValidation
 open MediatR
 open Microsoft.EntityFrameworkCore
@@ -58,6 +57,39 @@ type ActivityValidator() =
         base.RuleFor(fun a -> a.Venue).NotEmpty() |> ignore
         base.RuleFor(fun a -> a.Date).NotEqual(DateTime.MinValue) |> ignore
 
+// --- Private mapping helpers ---
+
+[<AutoOpen>]
+module private ActivityMapping =
+
+    let mainPhoto (photos: System.Collections.Generic.ICollection<Photo>) =
+        photos |> Seq.tryFind (fun p -> p.IsMain) |> Option.map (fun p -> p.Url) |> Option.defaultValue ""
+
+    let mapAttendeeToDto (myFollowingIds: Set<string>) (aa: ActivityAttendee) : AttendeeDto =
+        { Username      = if isNull (box aa.User) then "" else aa.User.UserName
+          DisplayName   = if isNull (box aa.User) then "" else aa.User.DisplayName
+          Bio           = if isNull (box aa.User) then null else aa.User.Bio
+          Image         = if isNull (box aa.User) then "" else mainPhoto aa.User.Photos
+          Following     = myFollowingIds.Contains(if isNull (box aa.User) then "" else aa.UserId)
+          FollowersCount = if isNull (box aa.User) then 0 else aa.User.Followers |> Seq.length
+          FollowingCount = if isNull (box aa.User) then 0 else aa.User.Followings |> Seq.length }
+
+    let mapActivityToDto (myFollowingIds: Set<string>) (a: Activity) : ActivityDto =
+        let host = a.Attendees |> Seq.tryFind (fun x -> x.IsHost)
+        { Id          = a.Id
+          Title       = a.Title
+          Date        = a.Date
+          Description = a.Description
+          Category    = a.Category
+          City        = a.City
+          Venue       = a.Venue
+          HostUsername =
+              host
+              |> Option.bind (fun h -> if isNull (box h.User) then None else Some h.User.UserName)
+              |> Option.defaultValue ""
+          IsCancelled = a.IsCancelled
+          Attendees   = a.Attendees |> Seq.map (mapAttendeeToDto myFollowingIds) |> ResizeArray }
+
 // --- Modules with Query/Command types and Handlers ---
 
 module List =
@@ -65,25 +97,53 @@ module List =
         member val Params: ActivityParams = ActivityParams() with get, set
         interface IRequest<ServiceResponse<PagedList<ActivityDto>>>
 
-    type Handler(context: DataContext, mapper: IMapper, userAccessor: IUserAccessor) =
+    type Handler(context: DataContext, userAccessor: IUserAccessor) =
         interface IRequestHandler<Query, ServiceResponse<PagedList<ActivityDto>>> with
             member _.Handle(request, _ct) =
                 task {
                     let username = userAccessor.GetUsername()
-                    let mutable query =
+
+                    // Build SQL-translatable filter query (no Includes yet)
+                    let baseQuery =
                         context.Activities
                             .Where(fun d -> d.Date >= request.Params.StartDate)
                             .OrderBy(fun a -> a.Date)
-                            .ProjectTo<ActivityDto>(mapper.ConfigurationProvider, dict ["currentUsername", box username])
-                            .AsQueryable()
+                            :> IQueryable<Activity>
 
-                    if request.Params.IsGoing && not request.Params.IsHost then
-                        query <- query.Where(fun x -> x.Attendees.Any(fun a -> a.Username = username))
+                    let filteredQuery =
+                        if request.Params.IsGoing && not request.Params.IsHost then
+                            baseQuery.Where(fun a -> a.Attendees.Any(fun aa -> aa.User.UserName = username))
+                        elif request.Params.IsHost && not request.Params.IsGoing then
+                            baseQuery.Where(fun a -> a.Attendees.Any(fun aa -> aa.IsHost && aa.User.UserName = username))
+                        else
+                            baseQuery
 
-                    if request.Params.IsHost && not request.Params.IsGoing then
-                        query <- query.Where(fun x -> x.HostUsername = username)
+                    let! totalCount = filteredQuery.CountAsync()
 
-                    let! pagedList = PagedList<ActivityDto>.CreateAsync(query, request.Params.PageNumber, request.Params.PageSize)
+                    let! activities =
+                        (filteredQuery
+                            .Include(fun a -> a.Attendees :> IEnumerable<ActivityAttendee>)
+                            .ThenInclude(fun (aa: ActivityAttendee) -> aa.User)
+                            .ThenInclude(fun (u: User) -> u.Photos :> IEnumerable<Photo>)
+                            .Include(fun a -> a.Attendees :> IEnumerable<ActivityAttendee>)
+                            .ThenInclude(fun (aa: ActivityAttendee) -> aa.User)
+                            .ThenInclude(fun (u: User) -> u.Followers :> IEnumerable<UserFollowing>)
+                            .Include(fun a -> a.Attendees :> IEnumerable<ActivityAttendee>)
+                            .ThenInclude(fun (aa: ActivityAttendee) -> aa.User)
+                            .ThenInclude(fun (u: User) -> u.Followings :> IEnumerable<UserFollowing>))
+                            .Skip((request.Params.PageNumber - 1) * request.Params.PageSize)
+                            .Take(request.Params.PageSize)
+                            .ToListAsync()
+
+                    let! myFollowingIds =
+                        context.UserFollowings
+                            .Where(fun f -> f.Observer.UserName = username)
+                            .Select(fun f -> f.TargetId)
+                            .ToListAsync()
+                    let followingSet = Set.ofSeq myFollowingIds
+
+                    let dtos = activities |> Seq.map (mapActivityToDto followingSet) |> Seq.toList
+                    let pagedList = PagedList<ActivityDto>(dtos, totalCount, request.Params.PageNumber, request.Params.PageSize)
                     return ServiceResponse.success pagedList
                 }
 
@@ -92,16 +152,35 @@ module Details =
         member val Id: Guid = Guid.Empty with get, set
         interface IRequest<ServiceResponse<ActivityDto>>
 
-    type Handler(context: DataContext, mapper: IMapper, userAccessor: IUserAccessor) =
+    type Handler(context: DataContext, userAccessor: IUserAccessor) =
         interface IRequestHandler<Query, ServiceResponse<ActivityDto>> with
             member _.Handle(request, _ct) =
                 task {
                     let username = userAccessor.GetUsername()
+
                     let! activity =
-                        context.Activities
-                            .ProjectTo<ActivityDto>(mapper.ConfigurationProvider, dict ["currentUsername", box username])
+                        (context.Activities
+                            .Include(fun a -> a.Attendees :> IEnumerable<ActivityAttendee>)
+                            .ThenInclude(fun (aa: ActivityAttendee) -> aa.User)
+                            .ThenInclude(fun (u: User) -> u.Photos :> IEnumerable<Photo>)
+                            .Include(fun a -> a.Attendees :> IEnumerable<ActivityAttendee>)
+                            .ThenInclude(fun (aa: ActivityAttendee) -> aa.User)
+                            .ThenInclude(fun (u: User) -> u.Followers :> IEnumerable<UserFollowing>)
+                            .Include(fun a -> a.Attendees :> IEnumerable<ActivityAttendee>)
+                            .ThenInclude(fun (aa: ActivityAttendee) -> aa.User)
+                            .ThenInclude(fun (u: User) -> u.Followings :> IEnumerable<UserFollowing>))
                             .FirstOrDefaultAsync(fun x -> x.Id = request.Id)
-                    return ServiceResponse.success activity
+
+                    if isNull (box activity) then
+                        return ServiceResponse.failure "Activity not found."
+                    else
+                        let! myFollowingIds =
+                            context.UserFollowings
+                                .Where(fun f -> f.Observer.UserName = username)
+                                .Select(fun f -> f.TargetId)
+                                .ToListAsync()
+                        let followingSet = Set.ofSeq myFollowingIds
+                        return ServiceResponse.success (mapActivityToDto followingSet activity)
                 }
 
 module Create =
