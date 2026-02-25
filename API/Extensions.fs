@@ -44,25 +44,29 @@ let addApplicationServices (services: IServiceCollection) (config: IConfiguratio
 
     services.AddDbContext<DataContext>(fun options ->
         let dbUrl = Environment.GetEnvironmentVariable("DATABASE_URL")
+        let defaultConn = config.GetConnectionString("DefaultConnection")
 
-        let connStr =
-            if not (isNull dbUrl) && dbUrl <> "" then
-                let url = dbUrl.Replace("postgres://", "")
-                let parts = url.Split("@")
-                let userPass = parts.[0]
-                let hostPortDb = parts.[1]
-                let hostPort = hostPortDb.Split("/").[0]
-                let db = hostPortDb.Split("/").[1]
-                let user = userPass.Split(":").[0]
-                let pass = userPass.Split(":").[1]
-                let host = hostPort.Split(":").[0]
-                let port = hostPort.Split(":").[1]
-                let updatedHost = host.Replace("flycast", "internal")
-                $"Server={updatedHost};Port={port};User Id={user};Password={pass};Database={db};"
-            else
-                config.GetConnectionString("DefaultConnection")
-
-        options.UseNpgsql(connStr) |> ignore)
+        if not (isNull dbUrl) && dbUrl <> "" then
+            // Parse DATABASE_URL (Fly.io / Docker env var format)
+            let url = dbUrl.Replace("postgres://", "")
+            let parts = url.Split("@")
+            let userPass = parts.[0]
+            let hostPortDb = parts.[1]
+            let hostPort = hostPortDb.Split("/").[0]
+            let db = hostPortDb.Split("/").[1]
+            let user = userPass.Split(":").[0]
+            let pass = userPass.Split(":").[1]
+            let host = hostPort.Split(":").[0]
+            let port = hostPort.Split(":").[1]
+            let updatedHost = host.Replace("flycast", "internal")
+            let connStr = $"Server={updatedHost};Port={port};User Id={user};Password={pass};Database={db};"
+            options.UseNpgsql(connStr) |> ignore
+        elif not (isNull defaultConn) && defaultConn <> "" then
+            // Use the connection string from appsettings (development PostgreSQL)
+            options.UseNpgsql(defaultConn) |> ignore
+        else
+            // No database credentials provided — use SQLite in-memory
+            options.UseSqlite("Data Source=activityhive;Mode=Memory;Cache=Shared") |> ignore)
     |> ignore
 
     services.AddCors(fun opts ->
