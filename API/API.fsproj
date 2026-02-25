@@ -2,9 +2,17 @@
 
   <PropertyGroup>
     <TargetFramework>net8.0</TargetFramework>
-    <Nullable>enable</Nullable>
-    <ImplicitUsings>enable</ImplicitUsings>
   </PropertyGroup>
+
+  <ItemGroup>
+    <Compile Include="Dtos.fs" />
+    <Compile Include="AuthService.fs" />
+    <Compile Include="Extensions.fs" />
+    <Compile Include="Middleware.fs" />
+    <Compile Include="Controllers.fs" />
+    <Compile Include="ChatHub.fs" />
+    <Compile Include="Program.fs" />
+  </ItemGroup>
 
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Authentication.JwtBearer" Version="8.0.3" />
@@ -19,8 +27,8 @@
   </ItemGroup>
 
   <ItemGroup>
-    <ProjectReference Include="..\Application\Application.csproj" />
-    <ProjectReference Include="..\Infrastructure\Infrastructure.csproj" />
+    <ProjectReference Include="..\Application\Application.fsproj" />
+    <ProjectReference Include="..\Infrastructure\Infrastructure.fsproj" />
   </ItemGroup>
 
 </Project>
