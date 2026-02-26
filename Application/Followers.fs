@@ -20,7 +20,9 @@ module FollowToggle =
                 task {
                     let! observer = context.Users.FirstOrDefaultAsync(fun x -> x.UserName = userAccessor.GetUsername())
                     let! target = context.Users.FirstOrDefaultAsync(fun x -> x.UserName = request.TargetUsername)
-                    if isNull (box target) then
+                    if isNull (box observer) then
+                        return ServiceResponse.failure "Observer user not found."
+                    elif isNull (box target) then
                         return ServiceResponse.failure "Target user not found."
                     else
                         let! existing = context.UserFollowings.FindAsync(observer.Id, target.Id)

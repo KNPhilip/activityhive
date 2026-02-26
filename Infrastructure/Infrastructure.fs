@@ -24,7 +24,8 @@ type CloudinarySettings =
 type UserAccessor(httpContextAccessor: IHttpContextAccessor) =
     interface IUserAccessor with
         member _.GetUsername() =
-            httpContextAccessor.HttpContext.User.FindFirstValue(ClaimTypes.Name)
+            if isNull httpContextAccessor.HttpContext then null
+            else httpContextAccessor.HttpContext.User.FindFirstValue(ClaimTypes.Name)
 
 type PhotoAccessor(settings: IOptions<CloudinarySettings>) =
     let cloudinary =
@@ -89,15 +90,17 @@ type IsHostRequirementHandler(dbContext: DataContext, httpContextAccessor: IHttp
                 let routeId =
                     httpContextAccessor.HttpContext.Request.RouteValues
                     |> Seq.tryFind (fun kv -> kv.Key = "id")
-                    |> Option.map (fun kv -> kv.Value.ToString())
+                    |> Option.bind (fun kv -> if isNull kv.Value then None else Some (kv.Value.ToString()))
                 match routeId with
                 | Some idStr ->
-                    let activityId = Guid.Parse(idStr)
-                    let! attendee =
-                        dbContext.ActivityAttendees
-                            .AsNoTracking()
-                            .SingleOrDefaultAsync(fun x -> x.UserId = userId && x.ActivityId = activityId)
-                    if not (isNull (box attendee)) && attendee.IsHost then
-                        context.Succeed(requirement)
+                    match Guid.TryParse(idStr) with
+                    | true, activityId ->
+                        let! attendee =
+                            dbContext.ActivityAttendees
+                                .AsNoTracking()
+                                .SingleOrDefaultAsync(fun x -> x.UserId = userId && x.ActivityId = activityId)
+                        if not (isNull (box attendee)) && attendee.IsHost then
+                            context.Succeed(requirement)
+                    | false, _ -> ()
                 | None -> ()
         } :> Task

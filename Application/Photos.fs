@@ -24,6 +24,8 @@ module Add =
                             .FirstOrDefaultAsync(fun x -> x.UserName = userAccessor.GetUsername())
                     if isNull (box user) then
                         return ServiceResponse.failure "User not found."
+                    elif isNull (box request.File) then
+                        return ServiceResponse.failure "No file provided."
                     else
                         let! uploadResult = photoAccessor.AddPhoto(request.File)
                         match uploadResult with

@@ -38,8 +38,10 @@ module Seed =
                 ]
 
                 for user in users do
-                    let! _ = userManager.CreateAsync(user, "Pa$$w0rd")
-                    ()
+                    let! result = userManager.CreateAsync(user, "Pa$$w0rd")
+                    if not result.Succeeded then
+                        let errors = result.Errors |> Seq.map (fun e -> e.Description) |> String.concat ", "
+                        failwith $"Failed to create seed user '{user.UserName}': {errors}"
 
                 let bob = users.[0]
                 let jane = users.[1]
@@ -48,7 +50,7 @@ module Seed =
                 let activities = [
                     mkActivity "Past Activity 1"   (DateTime.UtcNow.AddMonths(-2)) "Activity 2 months ago"          "drinks"  "London"  "Pub"              bob []
                     mkActivity "Past Activity 2"   (DateTime.UtcNow.AddMonths(-1)) "Activity 1 month ago"           "culture" "Paris"   "The Louvre"       bob [(jane, false)]
-                    mkActivity "Future Activity 1" (DateTime.UtcNow.AddMonths(1))  "Activity 1 month in future"     "music"   "London"  "Wembly Stadium"   tom [(jane, false)]
+                    mkActivity "Future Activity 1" (DateTime.UtcNow.AddMonths(1))  "Activity 1 month in future"     "music"   "London"  "Wembley Stadium"  tom [(jane, false)]
                     mkActivity "Future Activity 2" (DateTime.UtcNow.AddMonths(2))  "Activity 2 months in future"    "food"    "London"  "Jamies Italian"   bob [(tom, false)]
                     mkActivity "Future Activity 3" (DateTime.UtcNow.AddMonths(3))  "Activity 3 months in future"    "drinks"  "London"  "Pub"              jane [(bob, false)]
                     mkActivity "Future Activity 4" (DateTime.UtcNow.AddMonths(4))  "Activity 4 months in future"    "culture" "London"  "British Museum"   jane []

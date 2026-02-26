@@ -9,6 +9,7 @@ open Microsoft.AspNetCore.Authorization
 open Microsoft.AspNetCore.Builder
 open Microsoft.AspNetCore.Identity
 open Microsoft.AspNetCore.Mvc.Authorization
+open Microsoft.EntityFrameworkCore
 open Microsoft.Extensions.DependencyInjection
 open Microsoft.Extensions.Hosting
 open Microsoft.Extensions.Logging
@@ -94,7 +95,11 @@ let main argv =
         try
             let context = services.GetRequiredService<DataContext>()
             let userManager = services.GetRequiredService<UserManager<User>>()
-            let! _ = context.Database.EnsureCreatedAsync()
+            if context.Database.ProviderName = "Microsoft.EntityFrameworkCore.Sqlite" then
+                let! _ = context.Database.EnsureCreatedAsync()
+                ()
+            else
+                do! context.Database.MigrateAsync()
             do! Seed.seedData context userManager
         with ex ->
             let logger =

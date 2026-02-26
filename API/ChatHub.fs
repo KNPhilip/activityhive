@@ -4,8 +4,10 @@ open System
 open Application.Comments
 open Application.Core
 open MediatR
+open Microsoft.AspNetCore.Authorization
 open Microsoft.AspNetCore.SignalR
 
+[<Authorize>]
 type ChatHub(mediator: IMediator) =
     inherit Hub()
 

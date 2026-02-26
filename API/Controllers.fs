@@ -254,20 +254,24 @@ type AuthController
     (authService: IAuthService, userManager: UserManager<User>, emailSender: EmailSender) =
     inherit ControllerBase()
 
+    let hashToken (raw: string) =
+        Convert.ToBase64String(SHA256.HashData(Encoding.UTF8.GetBytes(raw)))
+
     let generateRefreshToken () =
         let randomNumber = Array.zeroCreate<byte> 32
         use rng = RandomNumberGenerator.Create()
         rng.GetBytes(randomNumber)
-
+        let rawToken = Convert.ToBase64String(randomNumber)
         { Id = 0
           User = Unchecked.defaultof<User>
-          Token = Convert.ToBase64String(randomNumber)
+          Token = hashToken rawToken
           Expires = DateTime.UtcNow.AddDays(7.0)
-          Revoked = None }
+          Revoked = None },
+        rawToken
 
     member this.SetRefreshToken(user: User) =
         task {
-            let refreshToken = generateRefreshToken ()
+            let refreshToken, rawToken = generateRefreshToken ()
             user.RefreshTokens.Add(refreshToken)
             let! _ = userManager.UpdateAsync(user)
 
@@ -277,7 +281,7 @@ type AuthController
                     Expires = Nullable(DateTimeOffset.UtcNow.AddDays(7.0))
                 )
 
-            this.Response.Cookies.Append("refreshToken", refreshToken.Token, cookieOptions)
+            this.Response.Cookies.Append("refreshToken", rawToken, cookieOptions)
         }
 
     [<HttpPost("login")>]

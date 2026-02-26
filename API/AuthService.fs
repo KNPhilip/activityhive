@@ -199,11 +199,15 @@ type AuthService
                         .Include(fun u -> u.Photos :> IEnumerable<Photo>)
                         .FirstOrDefaultAsync(fun u -> u.UserName = username)
 
+                let hashedToken =
+                    if isNull refreshToken then null
+                    else Convert.ToBase64String(SHA256.HashData(Encoding.UTF8.GetBytes(refreshToken)))
+
                 let oldToken =
-                    if isNull (box user) then
+                    if isNull (box user) || isNull hashedToken then
                         None
                     else
-                        user.RefreshTokens |> Seq.tryFind (fun x -> x.Token = refreshToken)
+                        user.RefreshTokens |> Seq.tryFind (fun x -> x.Token = hashedToken)
 
                 match box user, oldToken with
                 | null, _ -> return ServiceResponse.failure<UserDto> "No valid Refresh Tokens found."

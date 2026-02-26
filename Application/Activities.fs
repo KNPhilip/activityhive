@@ -194,18 +194,21 @@ module Create =
             member _.Handle(request, ct) =
                 task {
                     let! user = context.Users.FirstOrDefaultAsync((fun u -> u.UserName = userAccessor.GetUsername()), ct)
-                    let attendee: ActivityAttendee =
-                        { UserId = user.Id
-                          User = user
-                          ActivityId = request.Activity.Id
-                          Activity = request.Activity
-                          IsHost = true }
-                    request.Activity.Attendees.Add(attendee)
-                    context.Activities.Add(request.Activity) |> ignore
-                    let! result = context.SaveChangesAsync(ct)
-                    return
-                        if result > 0 then ServiceResponse.success ()
-                        else ServiceResponse.failure "Failed to create activity."
+                    if isNull (box user) then
+                        return ServiceResponse.failure "User not found."
+                    else
+                        let attendee: ActivityAttendee =
+                            { UserId = user.Id
+                              User = user
+                              ActivityId = request.Activity.Id
+                              Activity = request.Activity
+                              IsHost = true }
+                        request.Activity.Attendees.Add(attendee)
+                        context.Activities.Add(request.Activity) |> ignore
+                        let! result = context.SaveChangesAsync(ct)
+                        return
+                            if result > 0 then ServiceResponse.success ()
+                            else ServiceResponse.failure "Failed to create activity."
                 }
 
 module Edit =
