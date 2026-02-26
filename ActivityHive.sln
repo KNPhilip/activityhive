@@ -3,15 +3,15 @@ Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio Version 17
 VisualStudioVersion = 17.0.31903.59
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "API", "API\API.csproj", "{8F829A2C-1AC2-4C96-AA82-9323335A641F}"
+Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "API", "API\API.fsproj", "{8F829A2C-1AC2-4C96-AA82-9323335A641F}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Application", "Application\Application.csproj", "{4934BAFE-2753-478F-AA42-93CA01B9E458}"
+Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "Application", "Application\Application.fsproj", "{4934BAFE-2753-478F-AA42-93CA01B9E458}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Domain", "Domain\Domain.csproj", "{F7D79CB1-1823-4DC1-B8C6-B5B1E2A7870A}"
+Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "Domain", "Domain\Domain.fsproj", "{F7D79CB1-1823-4DC1-B8C6-B5B1E2A7870A}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Persistence", "Persistence\Persistence.csproj", "{B5E4859A-B797-4503-93B3-F99A78872668}"
+Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "Persistence", "Persistence\Persistence.fsproj", "{B5E4859A-B797-4503-93B3-F99A78872668}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Infrastructure", "Infrastructure\Infrastructure.csproj", "{B574B0E3-908C-4AA1-8802-52EA1D01476A}"
+Project("{6EC3EE1D-3C4E-46DD-8F32-0CC8E7565705}") = "Infrastructure", "Infrastructure\Infrastructure.fsproj", "{B574B0E3-908C-4AA1-8802-52EA1D01476A}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
