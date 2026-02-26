@@ -398,10 +398,11 @@ type AuthController
             if isNull (box user) then
                 return this.Unauthorized() :> IActionResult
             else
-                let origin = this.Request.Headers["Origin"].ToString()
+                let request = this.Request
+                let baseUrl = sprintf "%s://%s%s" request.Scheme request.Host.Value (request.PathBase.ToString())
                 let! token = userManager.GenerateEmailConfirmationTokenAsync(user)
                 let encodedToken = WebEncoders.Base64UrlEncode(Encoding.UTF8.GetBytes(token))
-                let verifyUrl = $"{origin}/account/verifyEmail?token={encodedToken}&email={user.Email}"
+                let verifyUrl = $"{baseUrl}/account/verifyEmail?token={encodedToken}&email={user.Email}"
 
                 let message =
                     $"<p>Please click the below link to verify your email address:</p><p><a href='{verifyUrl}'>Click to verify email</a></p>"
