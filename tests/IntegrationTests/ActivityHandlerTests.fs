@@ -12,10 +12,6 @@ open TestHelpers
 open Xunit
 open FsUnit.Xunit
 
-// ---------------------------------------------------------------------------
-// Collection fixture: one PostgreSQL container shared across all activity tests
-// ---------------------------------------------------------------------------
-
 [<CollectionDefinition("ActivityDb")>]
 type ActivityDbCollection() =
     interface ICollectionFixture<ActivityDbFixture>
@@ -32,10 +28,6 @@ and ActivityDbFixture() =
         member _.Dispose() =
             container.StopAsync().GetAwaiter().GetResult()
             container.DisposeAsync().AsTask().GetAwaiter().GetResult()
-
-// ---------------------------------------------------------------------------
-// Create handler tests
-// ---------------------------------------------------------------------------
 
 [<Collection("ActivityDb")>]
 type CreateHandlerTests(fixture: ActivityDbFixture) =
@@ -126,10 +118,6 @@ type CreateHandlerTests(fixture: ActivityDbFixture) =
             result.Error |> should equal "User not found."
         }
 
-// ---------------------------------------------------------------------------
-// Details handler tests
-// ---------------------------------------------------------------------------
-
 [<Collection("ActivityDb")>]
 type DetailsHandlerTests(fixture: ActivityDbFixture) =
 
@@ -183,10 +171,6 @@ type DetailsHandlerTests(fixture: ActivityDbFixture) =
 
             result.Data.HostUsername |> should equal host.UserName
         }
-
-// ---------------------------------------------------------------------------
-// Edit handler tests
-// ---------------------------------------------------------------------------
 
 [<Collection("ActivityDb")>]
 type EditHandlerTests(fixture: ActivityDbFixture) =
@@ -255,10 +239,6 @@ type EditHandlerTests(fixture: ActivityDbFixture) =
             result.Error |> should equal "Activity not found."
         }
 
-// ---------------------------------------------------------------------------
-// Delete handler tests
-// ---------------------------------------------------------------------------
-
 [<Collection("ActivityDb")>]
 type DeleteHandlerTests(fixture: ActivityDbFixture) =
 
@@ -299,10 +279,6 @@ type DeleteHandlerTests(fixture: ActivityDbFixture) =
             result.Success |> should equal false
             result.Error |> should equal "Activity not found."
         }
-
-// ---------------------------------------------------------------------------
-// UpdateAttendance handler tests
-// ---------------------------------------------------------------------------
 
 [<Collection("ActivityDb")>]
 type UpdateAttendanceHandlerTests(fixture: ActivityDbFixture) =
@@ -397,4 +373,70 @@ type UpdateAttendanceHandlerTests(fixture: ActivityDbFixture) =
 
             result.Success |> should equal false
             result.Error |> should equal "Activity not found."
+        }
+
+[<Collection("ActivityDb")>]
+type ListHandlerTests(fixture: ActivityDbFixture) =
+
+    let newCtx () = buildDataContext fixture.ConnectionString
+    let newUm ctx  = buildUserManager ctx
+
+    [<Fact>]
+    member _.``List handler returns activities from the database`` () =
+        task {
+            use ctx = newCtx()
+            let um = newUm ctx
+            let! host = createUser um "listhost1" "listhost1@test.com" "ListHost1" "Pa$$w0rd"
+            let! _ = createActivity ctx host "List Test Activity" (DateTime.UtcNow.AddDays(1.0)) "music" "London" "Wembley"
+
+            use listCtx = buildDataContext fixture.ConnectionString
+            let handler = List.Handler(listCtx, FakeUserAccessor(host.UserName))
+            let query = List.Query()
+            query.Params.StartDate <- DateTime.UtcNow.AddDays(-1.0)
+            let! result = (handler :> MediatR.IRequestHandler<List.Query, ServiceResponse<PagedList<ActivityDto>>>).Handle(query, CancellationToken.None)
+
+            result.Success |> should equal true
+            result.Data |> should not' (be Null)
+        }
+
+    [<Fact>]
+    member _.``List handler filters by IsGoing`` () =
+        task {
+            use ctx = newCtx()
+            let um = newUm ctx
+            let! host  = createUser um "isgoinghost1"  "isgoinghost1@test.com"  "IsGoingHost"  "Pa$$w0rd"
+            let! guest = createUser um "isgoingguest1" "isgoingguest1@test.com" "IsGoingGuest" "Pa$$w0rd"
+            let! activity = createActivity ctx host "IsGoing Test" (DateTime.UtcNow.AddDays(2.0)) "food" "Paris" "Cafe"
+
+            use attendCtx = buildDataContext fixture.ConnectionString
+            let attendCmd = UpdateAttendance.Command()
+            attendCmd.Id <- activity.Id
+            let! _ = (UpdateAttendance.Handler(attendCtx, FakeUserAccessor(guest.UserName)) :> MediatR.IRequestHandler<UpdateAttendance.Command, ServiceResponse<unit>>).Handle(attendCmd, CancellationToken.None)
+
+            use listCtx = buildDataContext fixture.ConnectionString
+            let query = List.Query()
+            query.Params.IsGoing <- true
+            query.Params.StartDate <- DateTime.UtcNow.AddDays(-1.0)
+            let! result = (List.Handler(listCtx, FakeUserAccessor(guest.UserName)) :> MediatR.IRequestHandler<List.Query, ServiceResponse<PagedList<ActivityDto>>>).Handle(query, CancellationToken.None)
+
+            result.Success |> should equal true
+            result.Data |> Seq.exists (fun a -> a.Title = "IsGoing Test") |> should equal true
+        }
+
+    [<Fact>]
+    member _.``List handler filters by IsHost`` () =
+        task {
+            use ctx = newCtx()
+            let um = newUm ctx
+            let! host = createUser um "ishosthost1" "ishosthost1@test.com" "IsHostHost" "Pa$$w0rd"
+            let! _ = createActivity ctx host "IsHost Test" (DateTime.UtcNow.AddDays(3.0)) "drinks" "London" "Pub"
+
+            use listCtx = buildDataContext fixture.ConnectionString
+            let query = List.Query()
+            query.Params.IsHost <- true
+            query.Params.StartDate <- DateTime.UtcNow.AddDays(-1.0)
+            let! result = (List.Handler(listCtx, FakeUserAccessor(host.UserName)) :> MediatR.IRequestHandler<List.Query, ServiceResponse<PagedList<ActivityDto>>>).Handle(query, CancellationToken.None)
+
+            result.Success |> should equal true
+            result.Data |> Seq.exists (fun a -> a.Title = "IsHost Test") |> should equal true
         }

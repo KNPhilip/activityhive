@@ -10,10 +10,6 @@ open Testcontainers.PostgreSql
 open Xunit
 open FsUnit.Xunit
 
-// ---------------------------------------------------------------------------
-// Collection fixture: one PostgreSQL container shared across all follower tests
-// ---------------------------------------------------------------------------
-
 [<CollectionDefinition("FollowerDb")>]
 type FollowerDbCollection() =
     interface ICollectionFixture<FollowerDbFixture>
@@ -30,10 +26,6 @@ and FollowerDbFixture() =
         member _.Dispose() =
             container.StopAsync().GetAwaiter().GetResult()
             container.DisposeAsync().AsTask().GetAwaiter().GetResult()
-
-// ---------------------------------------------------------------------------
-// FollowToggle tests
-// ---------------------------------------------------------------------------
 
 [<Collection("FollowerDb")>]
 type FollowToggleTests(fixture: FollowerDbFixture) =
@@ -121,10 +113,6 @@ type FollowToggleTests(fixture: FollowerDbFixture) =
             result.Success |> should equal false
             result.Error |> should equal "Target user not found."
         }
-
-// ---------------------------------------------------------------------------
-// List followers/following tests
-// ---------------------------------------------------------------------------
 
 [<Collection("FollowerDb")>]
 type ListFollowersTests(fixture: FollowerDbFixture) =

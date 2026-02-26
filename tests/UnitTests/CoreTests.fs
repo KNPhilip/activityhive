@@ -6,10 +6,6 @@ open Application.Core
 open Xunit
 open FsUnit.Xunit
 
-// ---------------------------------------------------------------------------
-// ServiceResponse helpers
-// ---------------------------------------------------------------------------
-
 [<Fact>]
 let ``ServiceResponse success sets Success to true and Data correctly`` () =
     let response = ServiceResponse.success 42
@@ -39,10 +35,6 @@ let ``ServiceResponse success with string works`` () =
     let response = ServiceResponse.success "hello"
     response.Success |> should equal true
     response.Data |> should equal "hello"
-
-// ---------------------------------------------------------------------------
-// PagingParams
-// ---------------------------------------------------------------------------
 
 [<Fact>]
 let ``PagingParams defaults to page 1 and size 10`` () =
@@ -86,10 +78,6 @@ let ``PagingParams accepts positive page number`` () =
     p.PageNumber <- 3
     p.PageNumber |> should equal 3
 
-// ---------------------------------------------------------------------------
-// PagedList
-// ---------------------------------------------------------------------------
-
 [<Fact>]
 let ``PagedList TotalPages calculates correctly for exact division`` () =
     let items = [1; 2; 3; 4; 5; 6; 7; 8; 9; 10]
@@ -131,10 +119,6 @@ let ``PagedList with empty items still works`` () =
     let paged = PagedList<int>([], 0, 1, 10)
     paged.TotalCount |> should equal 0
     paged.TotalPages |> should equal 0
-
-// ---------------------------------------------------------------------------
-// AppException
-// ---------------------------------------------------------------------------
 
 [<Fact>]
 let ``AppException stores status code and message`` () =

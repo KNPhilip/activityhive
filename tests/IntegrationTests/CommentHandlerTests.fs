@@ -10,10 +10,6 @@ open Testcontainers.PostgreSql
 open Xunit
 open FsUnit.Xunit
 
-// ---------------------------------------------------------------------------
-// Collection fixture: one PostgreSQL container shared across all comment tests
-// ---------------------------------------------------------------------------
-
 [<CollectionDefinition("CommentDb")>]
 type CommentDbCollection() =
     interface ICollectionFixture<CommentDbFixture>
@@ -30,10 +26,6 @@ and CommentDbFixture() =
         member _.Dispose() =
             container.StopAsync().GetAwaiter().GetResult()
             container.DisposeAsync().AsTask().GetAwaiter().GetResult()
-
-// ---------------------------------------------------------------------------
-// Comment Create handler tests
-// ---------------------------------------------------------------------------
 
 [<Collection("CommentDb")>]
 type CommentCreateHandlerTests(fixture: CommentDbFixture) =
@@ -73,10 +65,6 @@ type CommentCreateHandlerTests(fixture: CommentDbFixture) =
             result.Success |> should equal false
             result.Error |> should equal "Activity not found."
         }
-
-// ---------------------------------------------------------------------------
-// Comment List handler tests
-// ---------------------------------------------------------------------------
 
 [<Collection("CommentDb")>]
 type CommentListHandlerTests(fixture: CommentDbFixture) =

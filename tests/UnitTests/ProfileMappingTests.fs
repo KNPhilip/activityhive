@@ -8,10 +8,6 @@ open Domain
 open Xunit
 open FsUnit.Xunit
 
-// ---------------------------------------------------------------------------
-// Helpers
-// ---------------------------------------------------------------------------
-
 let private makeUser username displayName bio (photos: Photo list) (followersCount: int) (followingCount: int) =
     let user = User()
     user.Id <- Guid.NewGuid().ToString()
@@ -27,10 +23,6 @@ let private mainPhotoOf (url: string) =
 
 let private nonMainPhoto (url: string) =
     { Id = "side"; Url = url; IsMain = false }
-
-// ---------------------------------------------------------------------------
-// mainPhoto helper
-// ---------------------------------------------------------------------------
 
 [<Fact>]
 let ``mainPhoto returns empty string when no photos`` () =
@@ -55,10 +47,6 @@ let ``mainPhoto returns first main photo url when multiple main photos exist`` (
             [ { Id = "a"; Url = "http://first.jpg"; IsMain = true }
               { Id = "b"; Url = "http://second.jpg"; IsMain = true } ])
     mainPhoto photos |> should equal "http://first.jpg"
-
-// ---------------------------------------------------------------------------
-// mapUserToProfile
-// ---------------------------------------------------------------------------
 
 [<Fact>]
 let ``mapUserToProfile maps basic user fields`` () =
@@ -116,10 +104,6 @@ let ``mapUserToProfile includes photos collection`` () =
     let user = makeUser "bob" "Bob" "" [ photo ] 0 0
     let profile = mapUserToProfile Set.empty user
     profile.Photos |> Seq.length |> should equal 1
-
-// ---------------------------------------------------------------------------
-// mapUserActivityDto
-// ---------------------------------------------------------------------------
 
 let private makeActivity title date category =
     let id = Guid.NewGuid()

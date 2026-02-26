@@ -12,17 +12,9 @@ open Microsoft.Extensions.DependencyInjection
 open Persistence
 open Testcontainers.PostgreSql
 
-// ---------------------------------------------------------------------------
-// Fake IUserAccessor for tests
-// ---------------------------------------------------------------------------
-
 type FakeUserAccessor(username: string) =
     interface IUserAccessor with
         member _.GetUsername() = username
-
-// ---------------------------------------------------------------------------
-// Database factory using Testcontainers
-// ---------------------------------------------------------------------------
 
 /// Builds and returns a started PostgreSQL container.
 let buildPostgresContainer () =

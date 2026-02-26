@@ -2,7 +2,9 @@ module ActivityValidatorTests
 
 open System
 open Application.Activities
+open Application.Core
 open Domain
+open AutoMapper
 open Xunit
 open FsUnit.Xunit
 
@@ -90,3 +92,38 @@ let ``ActivityValidator accepts whitespace-only title as valid - potential weakn
     let result = validate activity
     // FluentValidation's NotEmpty treats whitespace as empty - this should fail
     result.IsValid |> should equal false
+
+[<Fact>]
+let ``ActivityParams defaults IsGoing to false`` () =
+    let p = ActivityParams()
+    p.IsGoing |> should equal false
+
+[<Fact>]
+let ``ActivityParams defaults IsHost to false`` () =
+    let p = ActivityParams()
+    p.IsHost |> should equal false
+
+[<Fact>]
+let ``ActivityParams IsGoing can be set to true`` () =
+    let p = ActivityParams()
+    p.IsGoing <- true
+    p.IsGoing |> should equal true
+
+[<Fact>]
+let ``ActivityParams IsHost can be set to true`` () =
+    let p = ActivityParams()
+    p.IsHost <- true
+    p.IsHost |> should equal true
+
+[<Fact>]
+let ``ActivityParams StartDate defaults to approximately UtcNow`` () =
+    let before = DateTime.UtcNow.AddSeconds(-1.0)
+    let p = ActivityParams()
+    let after = DateTime.UtcNow.AddSeconds(1.0)
+    p.StartDate |> should be (greaterThanOrEqualTo before)
+    p.StartDate |> should be (lessThanOrEqualTo after)
+
+[<Fact>]
+let ``MappingProfiles AutoMapper configuration is valid`` () =
+    let config = MapperConfiguration(fun c -> c.AddProfile<MappingProfiles>())
+    config.AssertConfigurationIsValid() |> ignore

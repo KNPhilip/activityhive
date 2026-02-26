@@ -5,10 +5,6 @@ open Domain
 open Xunit
 open FsUnit.Xunit
 
-// ---------------------------------------------------------------------------
-// RefreshToken
-// ---------------------------------------------------------------------------
-
 [<Fact>]
 let ``RefreshToken IsExpired returns true when Expires is in the past`` () =
     let token =
@@ -69,10 +65,6 @@ let ``RefreshToken IsActive returns false when both expired and revoked`` () =
           Revoked = Some (DateTime.UtcNow.AddSeconds(-5.0)) }
     token.IsActive |> should equal false
 
-// ---------------------------------------------------------------------------
-// Activity domain defaults
-// ---------------------------------------------------------------------------
-
 [<Fact>]
 let ``New Activity starts as not cancelled`` () =
     let activity: Activity =
@@ -103,10 +95,6 @@ let ``Activity can be marked as cancelled`` () =
           Comments = ResizeArray() }
     activity <- { activity with IsCancelled = true }
     activity.IsCancelled |> should equal true
-
-// ---------------------------------------------------------------------------
-// User domain defaults
-// ---------------------------------------------------------------------------
 
 [<Fact>]
 let ``User has empty collections by default`` () =
