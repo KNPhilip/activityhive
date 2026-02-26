@@ -24,14 +24,19 @@ type ChatHub(mediator: IMediator) =
         let groups = this.Groups
         let connectionId = this.Context.ConnectionId
         let callerClient = this.Clients.Caller
+        let activityIdStr = activityId.ToString()
 
         task {
-            do! groups.AddToGroupAsync(connectionId, activityId.ToString())
+            match Guid.TryParse(activityIdStr) with
+            | true, parsedActivityId ->
+                do! groups.AddToGroupAsync(connectionId, activityIdStr)
 
-            let q = List.Query()
-            q.ActivityId <- Guid.Parse(activityId.ToString())
-            let! result = mediator.Send(q)
+                let q = List.Query()
+                q.ActivityId <- parsedActivityId
+                let! result = mediator.Send(q)
 
-            do! callerClient.SendAsync("LoadComments", result.Data)
+                do! callerClient.SendAsync("LoadComments", result.Data)
+            | false, _ ->
+                ()
         }
         :> System.Threading.Tasks.Task
