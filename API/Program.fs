@@ -102,7 +102,7 @@ let main argv =
                     .GetRequiredService<ILoggerFactory>()
                     .CreateLogger("Startup")
 
-            logger.LogError(ex, "An error occurred during migration")
+            logger.LogError(ex, "An error occurred during database initialization")
     }
     |> fun t -> t.GetAwaiter().GetResult()
 

@@ -65,8 +65,8 @@ let addApplicationServices (services: IServiceCollection) (config: IConfiguratio
             // Use the connection string from appsettings (development PostgreSQL)
             options.UseNpgsql(defaultConn) |> ignore
         else
-            // No database credentials provided — use SQLite in-memory
-            options.UseSqlite("Data Source=activityhive;Mode=Memory;Cache=Shared") |> ignore)
+            // No database credentials provided — use file-based SQLite
+            options.UseSqlite("Data Source=activityhive.db") |> ignore)
     |> ignore
 
     services.AddCors(fun opts ->
