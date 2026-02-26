@@ -1,8 +1,10 @@
 namespace Persistence
 
+open System
 open Domain
 open Microsoft.AspNetCore.Identity.EntityFrameworkCore
 open Microsoft.EntityFrameworkCore
+open Microsoft.EntityFrameworkCore.Storage.ValueConversion
 
 type DataContext(options: DbContextOptions) =
     inherit IdentityDbContext<User>(options)
@@ -15,6 +17,19 @@ type DataContext(options: DbContextOptions) =
 
     override this.OnModelCreating(builder: ModelBuilder) =
         base.OnModelCreating(builder)
+
+        // Value converter for F# option<DateTime> → Nullable<DateTime>
+        // Required for PostgreSQL which does not automatically handle F# option types.
+        let dateTimeOptionConverter =
+            ValueConverter<DateTime option, Nullable<DateTime>>(
+                (fun d -> match d with Some v -> Nullable(v) | None -> Nullable()),
+                (fun d -> if d.HasValue then Some d.Value else None)
+            )
+
+        builder.Entity<RefreshToken>()
+            .Property(fun r -> r.Revoked)
+            .HasConversion(dateTimeOptionConverter)
+        |> ignore
 
         builder.Entity<ActivityAttendee>()
             .HasKey([| "UserId"; "ActivityId" |])

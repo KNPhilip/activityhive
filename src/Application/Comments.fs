@@ -78,7 +78,7 @@ module Create =
                               Author = user
                               Activity = activity
                               CreatedAt = DateTime.UtcNow }
-                        activity.Comments.Add(comment)
+                        context.Comments.Add(comment) |> ignore
                         let! success = context.SaveChangesAsync()
                         return
                             if success > 0 then ServiceResponse.success (mapCommentToDto comment)
