@@ -1,0 +1,270 @@
+name: CI
+
+on:
+  push:
+    branches: [main, 'copilot/**']
+  pull_request:
+    branches: [main]
+
+permissions:
+  contents: read
+
+jobs:
+
+  # ────────────────────────────────────────────────────────────────────────────
+  # 1. Unit Tests – fast, no external dependencies
+  # ────────────────────────────────────────────────────────────────────────────
+  unit-tests:
+    name: Unit Tests
+    runs-on: ubuntu-latest
+    outputs:
+      total:      ${{ steps.parse.outputs.total }}
+      passed:     ${{ steps.parse.outputs.passed }}
+      failed:     ${{ steps.parse.outputs.failed }}
+      elapsed_ms: ${{ steps.parse.outputs.elapsed_ms }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.x'
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-unit-${{ hashFiles('tests/UnitTests/UnitTests.fsproj', 'src/**/*.fsproj') }}
+          restore-keys: ${{ runner.os }}-nuget-
+
+      - name: Restore & Build
+        run: dotnet build tests/UnitTests/UnitTests.fsproj
+
+      - name: Run unit tests
+        run: |
+          dotnet test tests/UnitTests/UnitTests.fsproj --no-build \
+            --collect:"XPlat Code Coverage" \
+            --results-directory TestResults \
+            --logger "trx;LogFileName=unit.trx" \
+            --logger "console;verbosity=normal" \
+            2>&1 | tee /tmp/unit-out.txt
+
+      - name: Parse results
+        id: parse
+        run: |
+          python3 - <<'PYEOF'
+          import re, os
+          txt = open('/tmp/unit-out.txt').read()
+          def first(pat, default='0'):
+              m = re.search(pat, txt, re.MULTILINE)
+              return m.group(1) if m else default
+          total      = first(r'Total tests:\s+(\d+)')
+          passed     = first(r'^\s+Passed:\s+(\d+)')
+          failed     = first(r'^\s+Failed:\s+(\d+)')
+          elapsed_ms = int(float(first(r'Total time:\s+([\d.]+)\s+Seconds', '0')) * 1000)
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+              f.write(f'total={total}\npassed={passed}\nfailed={failed}\nelapsed_ms={elapsed_ms}\n')
+          PYEOF
+
+      - name: Upload coverage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: unit-coverage
+          path: TestResults/**/coverage.cobertura.xml
+
+      - name: Upload TRX artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: unit-trx
+          path: TestResults/unit.trx
+
+  # ────────────────────────────────────────────────────────────────────────────
+  # 2. Integration Tests – spins up PostgreSQL via Testcontainers (Docker)
+  # ────────────────────────────────────────────────────────────────────────────
+  integration-tests:
+    name: Integration Tests
+    runs-on: ubuntu-latest
+    outputs:
+      total:      ${{ steps.parse.outputs.total }}
+      passed:     ${{ steps.parse.outputs.passed }}
+      failed:     ${{ steps.parse.outputs.failed }}
+      elapsed_ms: ${{ steps.parse.outputs.elapsed_ms }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.x'
+
+      - name: Cache NuGet packages
+        uses: actions/cache@v4
+        with:
+          path: ~/.nuget/packages
+          key: ${{ runner.os }}-nuget-integration-${{ hashFiles('tests/IntegrationTests/IntegrationTests.fsproj', 'src/**/*.fsproj') }}
+          restore-keys: ${{ runner.os }}-nuget-
+
+      - name: Restore & Build
+        run: dotnet build tests/IntegrationTests/IntegrationTests.fsproj
+
+      - name: Run integration tests
+        run: |
+          dotnet test tests/IntegrationTests/IntegrationTests.fsproj --no-build \
+            --collect:"XPlat Code Coverage" \
+            --results-directory TestResults \
+            --logger "trx;LogFileName=integration.trx" \
+            --logger "console;verbosity=normal" \
+            2>&1 | tee /tmp/int-out.txt
+
+      - name: Parse results
+        id: parse
+        run: |
+          python3 - <<'PYEOF'
+          import re, os
+          txt = open('/tmp/int-out.txt').read()
+          def first(pat, default='0'):
+              m = re.search(pat, txt, re.MULTILINE)
+              return m.group(1) if m else default
+          total      = first(r'Total tests:\s+(\d+)')
+          passed     = first(r'^\s+Passed:\s+(\d+)')
+          failed     = first(r'^\s+Failed:\s+(\d+)')
+          elapsed_ms = int(float(first(r'Total time:\s+([\d.]+)\s+Seconds', '0')) * 1000)
+          with open(os.environ['GITHUB_OUTPUT'], 'a') as f:
+              f.write(f'total={total}\npassed={passed}\nfailed={failed}\nelapsed_ms={elapsed_ms}\n')
+          PYEOF
+
+      - name: Upload coverage artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: integration-coverage
+          path: TestResults/**/coverage.cobertura.xml
+
+      - name: Upload TRX artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: integration-trx
+          path: TestResults/integration.trx
+
+  # ────────────────────────────────────────────────────────────────────────────
+  # 3. Coverage Report – merges both suites, writes the full summary
+  #    Runs even when tests fail so we always get a report.
+  # ────────────────────────────────────────────────────────────────────────────
+  coverage-report:
+    name: Coverage Report
+    needs: [unit-tests, integration-tests]
+    runs-on: ubuntu-latest
+    if: always()
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: '10.x'
+
+      - name: Download unit coverage
+        uses: actions/download-artifact@v4
+        with:
+          name: unit-coverage
+          path: coverage/unit
+        continue-on-error: true
+
+      - name: Download integration coverage
+        uses: actions/download-artifact@v4
+        with:
+          name: integration-coverage
+          path: coverage/integration
+        continue-on-error: true
+
+      - name: Install ReportGenerator
+        run: dotnet tool install --global dotnet-reportgenerator-globaltool
+
+      - name: Generate combined coverage report
+        run: |
+          REPORTS=$(find coverage -name "*.cobertura.xml" 2>/dev/null | tr '\n' ';' | sed 's/;$//')
+          if [ -z "$REPORTS" ]; then
+            echo "No coverage files found – skipping report generation."
+            exit 0
+          fi
+          reportgenerator \
+            "-reports:${REPORTS}" \
+            "-targetdir:coverage/report" \
+            "-reporttypes:MarkdownSummaryGithub;JsonSummary" \
+            "-title:ActivityHive Coverage" \
+            "-sourcedirs:src"
+
+      - name: Write job summary
+        if: always()
+        env:
+          UNIT_TOTAL:      ${{ needs.unit-tests.outputs.total }}
+          UNIT_PASSED:     ${{ needs.unit-tests.outputs.passed }}
+          UNIT_FAILED:     ${{ needs.unit-tests.outputs.failed }}
+          UNIT_ELAPSED_MS: ${{ needs.unit-tests.outputs.elapsed_ms }}
+          INT_TOTAL:       ${{ needs.integration-tests.outputs.total }}
+          INT_PASSED:      ${{ needs.integration-tests.outputs.passed }}
+          INT_FAILED:      ${{ needs.integration-tests.outputs.failed }}
+          INT_ELAPSED_MS:  ${{ needs.integration-tests.outputs.elapsed_ms }}
+        run: |
+          python3 - <<'PYEOF'
+          import json, os, pathlib
+
+          def ei(k):
+              try: return int(os.environ.get(k, '0') or '0')
+              except ValueError: return 0
+
+          def fmt_ms(ms):
+              if ms <= 0: return '–'
+              if ms < 1000: return f'{ms}ms'
+              s = ms / 1000
+              return f'{s:.2f}s' if s < 60 else f'{int(s // 60)}m {s % 60:.0f}s'
+
+          def icon(failed): return '✅' if failed == 0 else '❌'
+
+          u_total, u_passed, u_failed, u_ms = ei('UNIT_TOTAL'), ei('UNIT_PASSED'), ei('UNIT_FAILED'), ei('UNIT_ELAPSED_MS')
+          i_total, i_passed, i_failed, i_ms = ei('INT_TOTAL'),  ei('INT_PASSED'),  ei('INT_FAILED'),  ei('INT_ELAPSED_MS')
+
+          g_total, g_passed, g_failed = u_total + i_total, u_passed + i_passed, u_failed + i_failed
+
+          # Read ReportGenerator JSON summary for coverage %
+          summary_path = pathlib.Path('coverage/report/Summary.json')
+          line_pct = branch_pct = 'N/A'
+          if summary_path.exists():
+              data = json.loads(summary_path.read_text())
+              s    = data.get('summary', {})
+              lp   = s.get('linecoverage')
+              bp   = s.get('branchcoverage')
+              if lp is not None: line_pct   = f'{lp:.1f}%'
+              if bp is not None: branch_pct = f'{bp:.1f}%'
+
+          with open(os.environ['GITHUB_STEP_SUMMARY'], 'a') as f:
+              f.write('## 🧪 Test Suite Results\n\n')
+              f.write('| Suite | Tests | Passed | Failed | Duration |\n')
+              f.write('|:---|---:|---:|---:|---:|\n')
+              f.write(f'| {icon(u_failed)} Unit Tests        | {u_total} | {u_passed} | {u_failed} | {fmt_ms(u_ms)} |\n')
+              f.write(f'| {icon(i_failed)} Integration Tests | {i_total} | {i_passed} | {i_failed} | {fmt_ms(i_ms)} |\n')
+              f.write(f'| **Total**                          | **{g_total}** | **{g_passed}** | **{g_failed}** | |\n')
+              f.write('\n---\n\n')
+              f.write('## 📊 Coverage (combined across all test suites)\n\n')
+              f.write('| Metric | Value |\n')
+              f.write('|:---|---:|\n')
+              f.write(f'| **Line Coverage**   | **{line_pct}**   |\n')
+              f.write(f'| **Branch Coverage** | **{branch_pct}** |\n')
+              f.write('\n> ℹ️ Coverage is measured across **Domain**, **Application**, and **Persistence**.\n')
+              f.write('> **API** and **Infrastructure** will appear once WebApplicationFactory-based HTTP tests are added.\n\n')
+              f.write('---\n\n')
+          PYEOF
+
+          # Append the per-assembly breakdown table from ReportGenerator
+          if [ -f coverage/report/SummaryGithub.md ]; then
+            cat coverage/report/SummaryGithub.md >> "$GITHUB_STEP_SUMMARY"
+          fi
+
+      - name: Upload coverage report artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: coverage-report
+          path: coverage/report
