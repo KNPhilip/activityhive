@@ -1,8 +1,8 @@
 # ActivityHive
 
-![testing](https://github.com/KNPhilip/activityhive/workflows/Continuous%20Integration/badge.svg)
-![deployment](https://github.com/KNPhilip/activityhive/workflows/Continuous%20Deployment/badge.svg)
-![coverage](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/KNPhilip/activityhive/main/.github/badges/coverage.json)
+![Continuous Integration](https://github.com/KNPhilip/activityhive/workflows/Continuous%20Integration/badge.svg)
+![Continuous Deployment](https://github.com/KNPhilip/activityhive/workflows/Continuous%20Deployment/badge.svg)
+![Coverage](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/KNPhilip/activityhive/main/.github/badges/coverage.json)
 
 ActivityHive is a case study made for the purpose of exploring functional & AI-Driven web development using F# and TypeScript.
 
