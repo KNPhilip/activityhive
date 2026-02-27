@@ -7,7 +7,7 @@ on:
     branches: [main]
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
 
@@ -147,6 +147,8 @@ jobs:
     needs: [unit-tests, integration-tests]
     runs-on: ubuntu-latest
     if: always()
+    permissions:
+      contents: write
 
     steps:
       - uses: actions/checkout@v4

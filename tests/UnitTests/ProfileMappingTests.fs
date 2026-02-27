@@ -8,14 +8,13 @@ open Domain
 open Xunit
 open FsUnit.Xunit
 
-let private makeUser username displayName bio (photos: Photo list) (followersCount: int) (followingCount: int) =
+let private makeUser username displayName bio (photos: Photo list) =
     let user = User()
     user.Id <- Guid.NewGuid().ToString()
     user.UserName <- username
     user.DisplayName <- displayName
     user.Bio <- bio
     for p in photos do user.Photos.Add(p)
-    // Followers/Followings are populated by caller
     user
 
 let private mainPhotoOf (url: string) =
@@ -50,7 +49,7 @@ let ``mainPhoto returns first main photo url when multiple main photos exist`` (
 
 [<Fact>]
 let ``mapUserToProfile maps basic user fields`` () =
-    let user = makeUser "bob" "Bob Smith" "A developer" [] 0 0
+    let user = makeUser "bob" "Bob Smith" "A developer" []
     let profile = mapUserToProfile Set.empty user
     profile.Username |> should equal "bob"
     profile.DisplayName |> should equal "Bob Smith"
@@ -58,42 +57,42 @@ let ``mapUserToProfile maps basic user fields`` () =
 
 [<Fact>]
 let ``mapUserToProfile sets Following to false when user not in followingSet`` () =
-    let user = makeUser "bob" "Bob" "" [] 0 0
+    let user = makeUser "bob" "Bob" "" []
     let profile = mapUserToProfile Set.empty user
     profile.Following |> should equal false
 
 [<Fact>]
 let ``mapUserToProfile sets Following to true when user id is in followingSet`` () =
-    let user = makeUser "bob" "Bob" "" [] 0 0
+    let user = makeUser "bob" "Bob" "" []
     let followingSet = Set.ofList [ user.Id ]
     let profile = mapUserToProfile followingSet user
     profile.Following |> should equal true
 
 [<Fact>]
 let ``mapUserToProfile sets Image to main photo url`` () =
-    let user = makeUser "bob" "Bob" "" [ mainPhotoOf "http://photo.jpg" ] 0 0
+    let user = makeUser "bob" "Bob" "" [ mainPhotoOf "http://photo.jpg" ]
     let profile = mapUserToProfile Set.empty user
     profile.Image |> should equal "http://photo.jpg"
 
 [<Fact>]
 let ``mapUserToProfile sets Image to empty string when no photos`` () =
-    let user = makeUser "bob" "Bob" "" [] 0 0
+    let user = makeUser "bob" "Bob" "" []
     let profile = mapUserToProfile Set.empty user
     profile.Image |> should equal ""
 
 [<Fact>]
 let ``mapUserToProfile counts followers correctly`` () =
-    let user = makeUser "bob" "Bob" "" [] 0 0
+    let user = makeUser "bob" "Bob" "" []
     // Add follower relations
-    let follower = makeUser "jane" "Jane" "" [] 0 0
+    let follower = makeUser "jane" "Jane" "" []
     user.Followers.Add({ ObserverId = follower.Id; Observer = follower; TargetId = user.Id; Target = user })
     let profile = mapUserToProfile Set.empty user
     profile.FollowersCount |> should equal 1
 
 [<Fact>]
 let ``mapUserToProfile counts followings correctly`` () =
-    let user = makeUser "bob" "Bob" "" [] 0 0
-    let target = makeUser "jane" "Jane" "" [] 0 0
+    let user = makeUser "bob" "Bob" "" []
+    let target = makeUser "jane" "Jane" "" []
     user.Followings.Add({ ObserverId = user.Id; Observer = user; TargetId = target.Id; Target = target })
     let profile = mapUserToProfile Set.empty user
     profile.FollowingCount |> should equal 1
@@ -101,7 +100,7 @@ let ``mapUserToProfile counts followings correctly`` () =
 [<Fact>]
 let ``mapUserToProfile includes photos collection`` () =
     let photo = mainPhotoOf "http://img.jpg"
-    let user = makeUser "bob" "Bob" "" [ photo ] 0 0
+    let user = makeUser "bob" "Bob" "" [ photo ]
     let profile = mapUserToProfile Set.empty user
     profile.Photos |> Seq.length |> should equal 1
 
@@ -130,7 +129,7 @@ let private makeActivityAttendee (user: User) (activity: Activity) isHost =
 
 [<Fact>]
 let ``mapUserActivityDto maps activity fields correctly`` () =
-    let host = makeUser "bob" "Bob" "" [] 0 0
+    let host = makeUser "bob" "Bob" "" []
     let activity = makeActivity "Test Activity" (DateTime.UtcNow.AddDays(1.0)) "music"
     let aa = makeActivityAttendee host activity true
     let dto = mapUserActivityDto aa
@@ -140,7 +139,7 @@ let ``mapUserActivityDto maps activity fields correctly`` () =
 
 [<Fact>]
 let ``mapUserActivityDto returns host username from attendees`` () =
-    let host = makeUser "bob" "Bob" "" [] 0 0
+    let host = makeUser "bob" "Bob" "" []
     let activity = makeActivity "Test" (DateTime.UtcNow) "drinks"
     let aa = makeActivityAttendee host activity true
     let dto = mapUserActivityDto aa
@@ -148,7 +147,7 @@ let ``mapUserActivityDto returns host username from attendees`` () =
 
 [<Fact>]
 let ``mapUserActivityDto returns empty host username when no host found`` () =
-    let guest = makeUser "jane" "Jane" "" [] 0 0
+    let guest = makeUser "jane" "Jane" "" []
     let activity = makeActivity "Test" (DateTime.UtcNow) "drinks"
     let aa = makeActivityAttendee guest activity false
     let dto = mapUserActivityDto aa
@@ -158,7 +157,7 @@ let ``mapUserActivityDto returns empty host username when no host found`` () =
 [<Fact>]
 let ``mapUserActivityDto maps date correctly`` () =
     let expectedDate = DateTime(2025, 6, 15, 10, 0, 0, DateTimeKind.Utc)
-    let host = makeUser "bob" "Bob" "" [] 0 0
+    let host = makeUser "bob" "Bob" "" []
     let activity = makeActivity "Concert" expectedDate "music"
     let aa = makeActivityAttendee host activity true
     let dto = mapUserActivityDto aa

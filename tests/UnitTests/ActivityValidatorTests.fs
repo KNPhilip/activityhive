@@ -85,12 +85,9 @@ let ``ActivityValidator reports multiple errors simultaneously`` () =
     result.Errors.Count |> should be (greaterThan 1)
 
 [<Fact>]
-let ``ActivityValidator accepts whitespace-only title as valid - potential weakness`` () =
-    // Weakness: whitespace-only strings pass NotEmpty validation in FluentValidation
-    // Consider adding NotEmpty().Must(fun s -> not (String.IsNullOrWhiteSpace(s))) 
+let ``ActivityValidator rejects whitespace-only title`` () =
     let activity = { validActivity() with Title = "   " }
     let result = validate activity
-    // FluentValidation's NotEmpty treats whitespace as empty - this should fail
     result.IsValid |> should equal false
 
 [<Fact>]
