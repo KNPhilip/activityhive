@@ -1,65 +1,30 @@
 # ActivityHive
 
-ActivityHive is a full-stack social activity planning platform that lets users create, discover, and join activities while connecting with other participants in real time.
+![Continuous Integration](https://github.com/KNPhilip/activityhive/workflows/Continuous%20Integration/badge.svg)
+![Continuous Deployment](https://github.com/KNPhilip/activityhive/workflows/Continuous%20Deployment/badge.svg)
+![Coverage](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/KNPhilip/activityhive/main/.github/badges/coverage.json)
 
-## Features
+ActivityHive is a case study made for the purpose of exploring functional & AI-Driven web development using F# and TypeScript.
 
-- **Activity Management** – Create, edit, delete, and browse activities with pagination and filtering
-- **Attendance** – Join or leave activities, view attendees and the host
-- **User Profiles** – Customisable profiles with bio, display name, and a photo gallery
-- **Photo Uploads** – Upload and manage profile photos stored on Cloudinary
-- **Social Following** – Follow and unfollow other users
-- **Real-time Comments** – Live activity comments powered by SignalR WebSockets
-- **Authentication** – Email/password registration and login, Facebook OAuth, JWT access tokens with HttpOnly refresh tokens
+The project itself is a hub for social events. It contains all the basic functionality that you would expect a website to have.
+Examples include activity management, user profiles, photo uploads, authentication, real-time comments, following system, and more simple stuff like that.
 
-## Tech Stack
+## AI
 
-### Backend
+Below is a list of the AI Agents that has been used to develop this project. Most of the code in the project is AI-generated.
+All of them have different trade-offs, so it is difficult to directly rank them, but I will say that Claude Opus 4.6 (expensive) 
+and Claude Sonnet 4.6 are the best on the market right now for software development IMO.
 
-| Layer | Technology |
-|---|---|
-| Language | F# on .NET 10 |
-| Framework | ASP.NET Core 10 |
-| Architecture | Clean Architecture + CQRS via MediatR |
-| Database | PostgreSQL (production), SQLite (tests) |
-| ORM | Entity Framework Core 10 |
-| Real-time | SignalR |
-| Auth | JWT + Refresh tokens, Facebook OAuth |
-| Image hosting | Cloudinary |
-| Email | SendGrid |
-| Validation | FluentValidation |
-
-### Frontend
-
-| Layer | Technology |
-|---|---|
-| Language | TypeScript |
-| Framework | React 18 |
-| Build tool | Vite |
-| State management | MobX |
-| HTTP client | Axios |
-| Real-time | @microsoft/signalr |
-| UI | Semantic UI React |
-| Forms | Formik + Yup |
-| Routing | React Router v6 |
-
-## Project Structure
-
-```
-activityhive/
-├── src/
-│   ├── API/            # Controllers, SignalR hub, auth service, middleware
-│   ├── Application/    # CQRS command/query handlers, validators, DTOs
-│   ├── Domain/         # Domain models (Activity, User, Photo, Comment, …)
-│   ├── Persistence/    # EF Core DbContext and database seeding
-│   └── Infrastructure/ # Cross-cutting services
-├── client-app/         # React/TypeScript frontend (Vite)
-├── tests/
-│   ├── UnitTests/      # Domain and application unit tests
-│   └── IntegrationTests/ # Handler integration tests (Docker/SQLite)
-├── Dockerfile
-└── fly.toml
-```
+| Agents |
+|---|
+| Claude Opus 4.6 |
+| Claude Sonnet 4.6 |
+| GPT-5 |
+| GPT-4o |
+| GPT-4o mini |
+| o3 mini |
+| Grok CLI |
+| Gemini CLI |
 
 ## Getting Started
 
@@ -169,12 +134,4 @@ docker run -p 8080:8080 \
 
 ## Deployment
 
-The project is configured to deploy to [Fly.io](https://fly.io) using `fly.toml`. After installing the Fly CLI and authenticating, run:
-
-```bash
-fly deploy
-```
-
-## License
-
-This project is open source. See [LICENSE](LICENSE) for details.
+The project is configured to deploy to [Fly.io](https://fly.io) and can be reached here: https://activityhive.fly.dev
