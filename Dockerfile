@@ -9,6 +9,8 @@ COPY "src/Application/Application.fsproj" "src/Application/Application.fsproj"
 COPY "src/Persistence/Persistence.fsproj" "src/Persistence/Persistence.fsproj"
 COPY "src/Domain/Domain.fsproj" "src/Domain/Domain.fsproj"
 COPY "src/Infrastructure/Infrastructure.fsproj" "src/Infrastructure/Infrastructure.fsproj"
+COPY "tests/UnitTests/UnitTests.fsproj" "tests/UnitTests/UnitTests.fsproj"
+COPY "tests/IntegrationTests/IntegrationTests.fsproj" "tests/IntegrationTests/IntegrationTests.fsproj"
 
 RUN dotnet restore "ActivityHive.sln"
 
