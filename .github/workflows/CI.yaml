@@ -204,7 +204,7 @@ jobs:
                    'green'       if pct >= 60 else
                    'yellowgreen' if pct >= 40 else
                    'yellow'      if pct >= 20 else 'red')
-          badge = {'schemaVersion': 1, 'label': 'coverage', 'message': message, 'color': color}
+          badge = {'schemaVersion': 1, 'label': 'Coverage', 'message': message, 'color': color}
           pathlib.Path('.github/badges').mkdir(parents=True, exist_ok=True)
           pathlib.Path('.github/badges/coverage.json').write_text(json.dumps(badge))
           print(f'Badge: {message} ({color})')
