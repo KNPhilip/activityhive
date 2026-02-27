@@ -1,5 +1,5 @@
 import { observer } from "mobx-react-lite";
-import { Card, Header, Tab, Image, Grid, Button } from "semantic-ui-react";
+import { Card, Header, Tab, TabPane, Image, Grid, Button } from "semantic-ui-react";
 import { Photo, Profile } from "../../app/models/profile";
 import { useStore } from "../../app/stores/store";
 import { SyntheticEvent, useState } from "react";
@@ -30,7 +30,7 @@ const ProfilePhotos = ({profile}: Props) => {
     }
 
     return (
-        <Tab.Pane>
+        <TabPane>
             <Grid>
                 <Grid.Column width={16}>
                     <Header floated="left" icon="image" content="Photos" />
@@ -78,7 +78,7 @@ const ProfilePhotos = ({profile}: Props) => {
                     )}
                 </Grid.Column>
             </Grid>
-        </Tab.Pane>
+        </TabPane>
     )
 }
 
