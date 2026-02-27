@@ -6,11 +6,11 @@ on:
     branches:
       - main
     paths:
-      - 'API/**'
-      - 'Application/**'
-      - 'Domain/**'
-      - 'Infrastructure/**'
-      - 'Persistence/**'
+      - 'src/API/**'
+      - 'src/Application/**'
+      - 'src/Domain/**'
+      - 'src/Infrastructure/**'
+      - 'src/Persistence/**'
 
 env:
   FLY_API_TOKEN: ${{ secrets.FLY_API_TOKEN }}

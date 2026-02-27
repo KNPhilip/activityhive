@@ -4,11 +4,11 @@ EXPOSE 8080
 
 # Copy .fsproj files and restore as distinct layers
 COPY "ActivityHive.sln" "ActivityHive.sln"
-COPY "API/API.fsproj" "API/API.fsproj"
-COPY "Application/Application.fsproj" "Application/Application.fsproj"
-COPY "Persistence/Persistence.fsproj" "Persistence/Persistence.fsproj"
-COPY "Domain/Domain.fsproj" "Domain/Domain.fsproj"
-COPY "Infrastructure/Infrastructure.fsproj" "Infrastructure/Infrastructure.fsproj"
+COPY "src/API/API.fsproj" "src/API/API.fsproj"
+COPY "src/Application/Application.fsproj" "src/Application/Application.fsproj"
+COPY "src/Persistence/Persistence.fsproj" "src/Persistence/Persistence.fsproj"
+COPY "src/Domain/Domain.fsproj" "src/Domain/Domain.fsproj"
+COPY "src/Infrastructure/Infrastructure.fsproj" "src/Infrastructure/Infrastructure.fsproj"
 
 RUN dotnet restore "ActivityHive.sln"
 
