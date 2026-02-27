@@ -1,5 +1,5 @@
 import { observer } from "mobx-react-lite";
-import { Card, Grid, Header, Tab, TabProps, Image } from "semantic-ui-react";
+import { Card, Grid, Header, Tab, TabPane, TabProps, Image } from "semantic-ui-react";
 import { useStore } from "../../app/stores/store";
 import { SyntheticEvent, useEffect } from "react";
 import { UserActivity } from "../../app/models/profile";
@@ -29,7 +29,7 @@ const ProfileActivities = () => {
   };
 
   return (
-    <Tab.Pane loading={loadingActivities}>
+    <TabPane loading={loadingActivities}>
       <Grid>
         <Grid.Column width={16}>
           <Header floated="left" icon="calender" content={"Activities"} />
@@ -64,7 +64,7 @@ const ProfileActivities = () => {
           </Card.Group>
         </Grid.Column>
       </Grid>
-    </Tab.Pane>
+    </TabPane>
   );
 };
 
