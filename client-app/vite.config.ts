@@ -4,7 +4,7 @@ import react from "@vitejs/plugin-react-swc";
 export default defineConfig(() => {
   return {
     build: {
-      outDir: "../API/wwwroot",
+      outDir: "../src/API/wwwroot",
     },
     server: {
       port: 3000,
