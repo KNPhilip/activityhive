@@ -19,13 +19,21 @@ jobs:
   docker:
     runs-on: ubuntu-latest
     steps:
-      - name: Build and push to DockerHub
-        # Using my own action to build & push to DockerHub.
-        uses: knphilip/actions/dockerfile-push@main
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Log in to DockerHub
+        uses: docker/login-action@v3
         with:
-          tags: knphilip/activityhive:latest
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
+
+      - name: Build and push to DockerHub
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: knphilip/activityhive:latest
           
   deploy:
     needs: docker
